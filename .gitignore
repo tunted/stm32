@@ -1,6 +1,8 @@
 # Prerequisites
 *.d
 
+**/Project/Project/*/MDK-ARM/STM32F1/
+
 # Object files
 *.o
 *.ko

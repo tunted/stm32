@@ -34,13 +34,22 @@
 /* Private define ------------------------------------------------------------*/
 /* Private macro -------------------------------------------------------------*/
 /* Private variables ---------------------------------------------------------*/
-TIM_TimeBaseInitTypeDef  TIM_TimeBaseStructure;
-TIM_OCInitTypeDef  TIM_OCInitStructure;
-TIM_BDTRInitTypeDef TIM_BDTRInitStructure;
+TIM_TimeBaseInitTypeDef TIM_TimeBaseStructure;
+TIM_OCInitTypeDef       TIM_OCInitStructure;
+TIM_BDTRInitTypeDef     TIM_BDTRInitStructure;
+
+int   debug_upate_timer_1   = 0,
+      debug_upate_timer_16  = 0;
+
+int	debug_oc1 = 0,
+		debug_oc2 = 0,
+		debug_oc3 = 0,
+		debug_oc4 = 0;
 
 /* Private function prototypes -----------------------------------------------*/
 void RCC_Configuration(void);
 void GPIO_Configuration(void);
+void TIM1_Configuration(void);
 
 /* Private functions ---------------------------------------------------------*/
 
@@ -64,132 +73,15 @@ int main(void)
   /* GPIO Configuration */
   GPIO_Configuration();
 
-  /* TIM1 and Timers(TIM3 and TIM4) synchronisation in parallel mode -----------
-     1/TIM1 is configured as Master Timer:
-     - PWM Mode is used
-     - The TIM1 Update event is used as Trigger Output
-    
-     2/TIM3 and TIM4 are slaves for TIM1,
-     - PWM Mode is used
-     - The ITR0(TIM1) is used as input trigger for both slaves
-     - Gated mode is used, so starts and stops of slaves counters
-       are controlled by the Master trigger output signal(update event).
-
-  o For Low-density, Medium-density, High-density and Connectivity line devices:
-    The TIMxCLK is fixed to 72 MHz, Prescaler = 0 so the TIM1 counter clock is 72 MHz.
-
-    The Master Timer TIM1 is running at:
-    TIM1 frequency = TIM1 counter clock / (TIM1_Period + 1) = 281.250 KHz
-    and the duty cycle is equal to: TIM1_CCR1/(TIM1_ARR + 1) = 50%
-
-    The TIM3 is running at: 
-    (TIM1 frequency)/ ((TIM3 period +1)* (Repetition_Counter+1)) = 18.750 KHz and
-    a duty cycle equal to TIM3_CCR1/(TIM3_ARR + 1) = 33.3%
-
-    The TIM4 is running at:
-    (TIM1 frequency)/ ((TIM4 period +1)* (Repetition_Counter+1)) = 28.125 KHz and
-    a duty cycle equal to TIM4_CCR1/(TIM4_ARR + 1) = 50%
-  
-  o For Low-Density Value line and Medium-Density Value line devices:
-    The TIMxCLK is fixed to 24 MHz, Prescaler = 0 so the TIM1 counter clock is 24 MHz.
-    TIM1 frequency = 93.75 KHz
-    TIM3 frequency = 6.25 KHz
-    TIM4 frequency = 9.375 KHz
-  --------------------------------------------------------------------------- */
-
-  /* TIM3 Peripheral Configuration ----------------------------------------*/
-  /* TIM3 Slave Configuration: PWM1 Mode */
-  TIM_TimeBaseStructure.TIM_Period = 2;
-  TIM_TimeBaseStructure.TIM_Prescaler = 0;
-  TIM_TimeBaseStructure.TIM_ClockDivision = 0;
-  TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
-
-  TIM_TimeBaseInit(TIM3, &TIM_TimeBaseStructure);
-
-  TIM_OCInitStructure.TIM_OCMode = TIM_OCMode_PWM1;
-  TIM_OCInitStructure.TIM_OutputState = TIM_OutputState_Enable;
-  TIM_OCInitStructure.TIM_Pulse = 1;
-
-  TIM_OC1Init(TIM3, &TIM_OCInitStructure);
-
-  /* Slave Mode selection: TIM3 */
-  TIM_SelectSlaveMode(TIM3, TIM_SlaveMode_Gated);
-  TIM_SelectInputTrigger(TIM3, TIM_TS_ITR0);
-  
-  /* TIM4 Peripheral Configuration ----------------------------------------*/
-  /* TIM4 Slave Configuration: PWM1 Mode */
-  TIM_TimeBaseStructure.TIM_Period = 1;
-  TIM_TimeBaseStructure.TIM_Prescaler = 0;
-  TIM_TimeBaseStructure.TIM_ClockDivision = 0;
-  TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
-
-  TIM_TimeBaseInit(TIM4, &TIM_TimeBaseStructure);
-
-  TIM_OCInitStructure.TIM_OCMode = TIM_OCMode_PWM1;
-  TIM_OCInitStructure.TIM_OutputState = TIM_OutputState_Enable;
-  TIM_OCInitStructure.TIM_Pulse = 1;
-
-  TIM_OC1Init(TIM4, &TIM_OCInitStructure);
-
-  /* Slave Mode selection: TIM4 */
-  TIM_SelectSlaveMode(TIM4, TIM_SlaveMode_Gated);
-  TIM_SelectInputTrigger(TIM4, TIM_TS_ITR0);
-  
-  /* TIM1 Peripheral Configuration ----------------------------------------*/
-  /* Time Base configuration */
-  TIM_TimeBaseStructure.TIM_Prescaler = 0;
-  TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
-  TIM_TimeBaseStructure.TIM_Period = 255;
-  TIM_TimeBaseStructure.TIM_ClockDivision = 0;
-  TIM_TimeBaseStructure.TIM_RepetitionCounter = 4;
-
-  TIM_TimeBaseInit(TIM1, &TIM_TimeBaseStructure);
-
-  /* Channel 1 Configuration in PWM mode */
-  TIM_OCInitStructure.TIM_OCMode = TIM_OCMode_PWM2;
-  TIM_OCInitStructure.TIM_OutputState = TIM_OutputState_Enable;
-  TIM_OCInitStructure.TIM_OutputNState = TIM_OutputNState_Enable;
-  TIM_OCInitStructure.TIM_Pulse = 127;
-  TIM_OCInitStructure.TIM_OCPolarity = TIM_OCPolarity_Low;
-  TIM_OCInitStructure.TIM_OCNPolarity = TIM_OCNPolarity_Low;
-  TIM_OCInitStructure.TIM_OCIdleState = TIM_OCIdleState_Set;
-  TIM_OCInitStructure.TIM_OCNIdleState = TIM_OCIdleState_Reset;
-
-  TIM_OC1Init(TIM1, &TIM_OCInitStructure);
-
-  /* Automatic Output enable, Break, dead time and lock configuration*/
-  TIM_BDTRInitStructure.TIM_OSSRState = TIM_OSSRState_Enable;
-  TIM_BDTRInitStructure.TIM_OSSIState = TIM_OSSIState_Enable;
-  TIM_BDTRInitStructure.TIM_LOCKLevel = TIM_LOCKLevel_1;
-  TIM_BDTRInitStructure.TIM_DeadTime = 5;
-  TIM_BDTRInitStructure.TIM_Break = TIM_Break_Disable;
-  TIM_BDTRInitStructure.TIM_BreakPolarity = TIM_BreakPolarity_High;
-  TIM_BDTRInitStructure.TIM_AutomaticOutput = TIM_AutomaticOutput_Disable;
-
-  TIM_BDTRConfig(TIM1, &TIM_BDTRInitStructure);
-
-  /* Master Mode selection */
-  TIM_SelectOutputTrigger(TIM1, TIM_TRGOSource_Update);
-
-  /* Select the Master Slave Mode */
-  TIM_SelectMasterSlaveMode(TIM1, TIM_MasterSlaveMode_Enable);
-  
-  /* TIM1 counter enable */
-  TIM_Cmd(TIM1, ENABLE);
-
-  /* TIM enable counter */
-  TIM_Cmd(TIM3, ENABLE);
-  TIM_Cmd(TIM4, ENABLE);
-
-  /* Main Output Enable */
-  TIM_CtrlPWMOutputs(TIM1, ENABLE);
+	/* TIM1 Configuration */
+  TIM1_Configuration();
 
   while (1)
   {}
 }
 
 /**
-  * @brief  Configures the different system clocks.
+  * @brief  Configures the different system clocks.iel
   * @param  None
   * @retval None
   */
@@ -199,8 +91,6 @@ void RCC_Configuration(void)
   RCC_APB2PeriphClockCmd(RCC_APB2Periph_TIM1 | RCC_APB2Periph_GPIOA | RCC_APB2Periph_GPIOE |
                          RCC_APB2Periph_GPIOC | RCC_APB2Periph_GPIOB | RCC_APB2Periph_AFIO, ENABLE);
 
-  /* TIM3 and TIM4 clock enable */
-  RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM3 | RCC_APB1Periph_TIM4, ENABLE);
 }
 
 /**
@@ -212,35 +102,89 @@ void GPIO_Configuration(void)
 {
   GPIO_InitTypeDef GPIO_InitStructure;
 
-#ifdef STM32F10X_CL
-  /* GPIOC Configuration: TIM3 channel1 as alternate function push-pull */
-  GPIO_InitStructure.GPIO_Pin =  GPIO_Pin_6;
-  GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP;
-  GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-
-  GPIO_Init(GPIOC, &GPIO_InitStructure);
-
-  GPIO_PinRemapConfig(GPIO_FullRemap_TIM3, ENABLE);	
-
-  /* GPIOE Configuration: TIM1 channel1 as alternate function push-pull */
-  GPIO_InitStructure.GPIO_Pin =  GPIO_Pin_8;
-
-  GPIO_Init(GPIOE, &GPIO_InitStructure);
-
-  GPIO_PinRemapConfig(GPIO_FullRemap_TIM1, ENABLE);	
-
-#else
-
   /* GPIOA Configuration: TIM1 Channel1 and TIM3 Channel1 as alternate function push-pull */
-  GPIO_InitStructure.GPIO_Pin = GPIO_Pin_6 | GPIO_Pin_8;
+  GPIO_InitStructure.GPIO_Pin = GPIO_Pin_8;
   GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP;
   GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
   GPIO_Init(GPIOA, &GPIO_InitStructure);
-#endif
+}
 
-  /* GPIOB Configuration: TIM4 Channel1 as alternate function push-pull */
-  GPIO_InitStructure.GPIO_Pin = GPIO_Pin_6;
-  GPIO_Init(GPIOB, &GPIO_InitStructure);
+void TIM1_Configuration(void)
+{
+  TIM_TimeBaseInitTypeDef time_base_init;
+  TIM_OCInitTypeDef tim_oc_init;
+
+  TIM_DeInit(TIM1);
+  time_base_init.TIM_Prescaler = 15;
+  time_base_init.TIM_CounterMode = TIM_CounterMode_Up;
+  time_base_init.TIM_Period = 0xffff;
+  time_base_init.TIM_ClockDivision = TIM_CKD_DIV4;
+  time_base_init.TIM_RepetitionCounter = 11;
+  TIM_TimeBaseInit(TIM1, &time_base_init);
+
+  tim_oc_init.TIM_OCMode        = TIM_OCMode_Active;
+  tim_oc_init.TIM_OutputState   = TIM_OutputState_Enable;
+  tim_oc_init.TIM_OutputNState  = TIM_OutputNState_Enable;
+  tim_oc_init.TIM_Pulse         = 0x2f;
+  tim_oc_init.TIM_OCPolarity    = TIM_OCPolarity_High;
+  tim_oc_init.TIM_OCNPolarity   = TIM_OCNPolarity_High;
+  tim_oc_init.TIM_OCIdleState   = TIM_OCIdleState_Reset;
+  tim_oc_init.TIM_OCNIdleState  = TIM_OCNIdleState_Reset;
+  TIM_OC1Init(TIM1, &tim_oc_init);
+	
+  TIM_ITConfig(TIM1, TIM_IT_Update, ENABLE);	
+  TIM_ITConfig(TIM1, TIM_IT_CC1, ENABLE);
+  TIM_ITConfig(TIM1, TIM_IT_CC2, ENABLE);
+  // TIM_ITConfig(TIM1, TIM_IT_CC3, ENABLE);
+  // TIM_ITConfig(TIM1, TIM_IT_CC4, ENABLE);
+	
+	NVIC_EnableIRQ(TIM1_UP_TIM16_IRQn);
+  NVIC_EnableIRQ(TIM1_CC_IRQn);
+  
+	TIM_Cmd(TIM1, ENABLE);
+  // TIM_CtrlPWMOutputs(TIM1, ENABLE);
+}
+
+void TIM1_UP_TIM16_IRQHandler(void)
+{
+  if (SET == TIM_GetITStatus(TIM1, TIM_IT_Update))
+  {
+    debug_upate_timer_1 += 1;
+    TIM_ClearITPendingBit(TIM1, TIM_IT_Update);
+  }
+
+  if (SET == TIM_GetITStatus(TIM16, TIM_IT_Update))
+  {
+    debug_upate_timer_16 += 1;
+    TIM_ClearITPendingBit(TIM16, TIM_IT_Update);
+  }
+}
+
+void TIM1_CC_IRQHandler(void)
+{
+	if (SET == TIM_GetITStatus(TIM1, TIM_IT_CC1))
+	{
+		debug_oc1 += 1;
+		TIM_ClearITPendingBit(TIM1, TIM_IT_CC1);
+	}
+
+	if (SET == TIM_GetITStatus(TIM1, TIM_IT_CC2))
+	{
+		debug_oc2 += 1;
+		TIM_ClearITPendingBit(TIM1, TIM_IT_CC2);
+	}
+	
+	if (SET == TIM_GetITStatus(TIM1, TIM_IT_CC3))
+	{
+		debug_oc3 += 1;
+		TIM_ClearITPendingBit(TIM1, TIM_IT_CC3);
+	}
+	
+	if (SET == TIM_GetITStatus(TIM1, TIM_IT_CC4))
+	{
+		debug_oc4 += 1;
+		TIM_ClearITPendingBit(TIM1, TIM_IT_CC4);
+	}
 }
 
 #ifdef  USE_FULL_ASSERT

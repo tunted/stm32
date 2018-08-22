@@ -38,8 +38,9 @@ TIM_TimeBaseInitTypeDef TIM_TimeBaseStructure;
 TIM_OCInitTypeDef       TIM_OCInitStructure;
 TIM_BDTRInitTypeDef     TIM_BDTRInitStructure;
 
-int   debug_upate_timer_1   = 0,
-      debug_upate_timer_16  = 0;
+int debug_upate_timer_1   = 0,
+    debug_upate_timer_1_cnt,
+    debug_upate_timer_16  = 0;
 
 int	debug_oc1 = 0,
 		debug_oc2 = 0,
@@ -68,6 +69,7 @@ int main(void)
      */     
        
   /* System Clocks Configuration */
+
   RCC_Configuration();
 
   /* GPIO Configuration */
@@ -90,7 +92,6 @@ void RCC_Configuration(void)
   /* TIM1, GPIOA and GPIOB clock enable */
   RCC_APB2PeriphClockCmd(RCC_APB2Periph_TIM1 | RCC_APB2Periph_GPIOA | RCC_APB2Periph_GPIOE |
                          RCC_APB2Periph_GPIOC | RCC_APB2Periph_GPIOB | RCC_APB2Periph_AFIO, ENABLE);
-
 }
 
 /**
@@ -103,45 +104,31 @@ void GPIO_Configuration(void)
   GPIO_InitTypeDef GPIO_InitStructure;
 
   /* GPIOA Configuration: TIM1 Channel1 and TIM3 Channel1 as alternate function push-pull */
-  GPIO_InitStructure.GPIO_Pin = GPIO_Pin_8;
-  GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP;
+  GPIO_InitStructure.GPIO_Pin = GPIO_Pin_9;
+  GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_OD;
   GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
   GPIO_Init(GPIOA, &GPIO_InitStructure);
 }
 
 void TIM1_Configuration(void)
 {
-  TIM_TimeBaseInitTypeDef time_base_init;
-  TIM_OCInitTypeDef tim_oc_init;
+  TIM1->CCMR1 |= TIM_CCMR1_CC2S_0;    // detect rising edge on TI2
+  TIM1->CCMR1 |= TIM_CCMR1_IC2F_3;    // config filter duration
+  TIM1->CCER  |= TIM_CCER_CC2P;       // select rising edge polarity
+  TIM1->SMCR  |= TIM_SMCR_SMS;        // config timer in external clock mode 1
+  TIM1->SMCR  |= (TIM_SMCR_TS_0 | TIM_SMCR_TS_2); // select TI2 as the trigger input source
+  TIM1->CR1   |= TIM_CR1_CEN;         // enable timer
 
-  TIM_DeInit(TIM1);
-  time_base_init.TIM_Prescaler = 15;
-  time_base_init.TIM_CounterMode = TIM_CounterMode_Up;
-  time_base_init.TIM_Period = 0xffff;
-  time_base_init.TIM_ClockDivision = TIM_CKD_DIV4;
-  time_base_init.TIM_RepetitionCounter = 11;
-  TIM_TimeBaseInit(TIM1, &time_base_init);
+  // TIM_ITConfig(TIM1, TIM_IT_Update, ENABLE);	
+  // TIM_ITConfig(TIM1, TIM_IT_CC1, ENABLE);
+  // TIM_ITConfig(TIM1, TIM_IT_CC2, ENABLE);
+  // // TIM_ITConfig(TIM1, TIM_IT_CC3, ENABLE);
+  // // TIM_ITConfig(TIM1, TIM_IT_CC4, ENABLE);
+	
+	// NVIC_EnableIRQ(TIM1_UP_TIM16_IRQn);
+  // NVIC_EnableIRQ(TIM1_CC_IRQn);
 
-  tim_oc_init.TIM_OCMode        = TIM_OCMode_Active;
-  tim_oc_init.TIM_OutputState   = TIM_OutputState_Enable;
-  tim_oc_init.TIM_OutputNState  = TIM_OutputNState_Enable;
-  tim_oc_init.TIM_Pulse         = 0x2f;
-  tim_oc_init.TIM_OCPolarity    = TIM_OCPolarity_High;
-  tim_oc_init.TIM_OCNPolarity   = TIM_OCNPolarity_High;
-  tim_oc_init.TIM_OCIdleState   = TIM_OCIdleState_Reset;
-  tim_oc_init.TIM_OCNIdleState  = TIM_OCNIdleState_Reset;
-  TIM_OC1Init(TIM1, &tim_oc_init);
-	
-  TIM_ITConfig(TIM1, TIM_IT_Update, ENABLE);	
-  TIM_ITConfig(TIM1, TIM_IT_CC1, ENABLE);
-  TIM_ITConfig(TIM1, TIM_IT_CC2, ENABLE);
-  // TIM_ITConfig(TIM1, TIM_IT_CC3, ENABLE);
-  // TIM_ITConfig(TIM1, TIM_IT_CC4, ENABLE);
-	
-	NVIC_EnableIRQ(TIM1_UP_TIM16_IRQn);
-  NVIC_EnableIRQ(TIM1_CC_IRQn);
-  
-	TIM_Cmd(TIM1, ENABLE);
+	// TIM_Cmd(TIM1, ENABLE);
   // TIM_CtrlPWMOutputs(TIM1, ENABLE);
 }
 
@@ -150,6 +137,7 @@ void TIM1_UP_TIM16_IRQHandler(void)
   if (SET == TIM_GetITStatus(TIM1, TIM_IT_Update))
   {
     debug_upate_timer_1 += 1;
+    debug_upate_timer_1_cnt = (int)(TIM1->CNT);
     TIM_ClearITPendingBit(TIM1, TIM_IT_Update);
   }
 

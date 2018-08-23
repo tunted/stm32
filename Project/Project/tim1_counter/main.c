@@ -104,7 +104,7 @@ void GPIO_Configuration(void)
   GPIO_InitTypeDef GPIO_InitStructure;
 
   /* GPIOA Configuration: TIM1 Channel1 and TIM3 Channel1 as alternate function push-pull */
-  GPIO_InitStructure.GPIO_Pin = GPIO_Pin_9;
+  GPIO_InitStructure.GPIO_Pin = GPIO_Pin_8;
   GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_OD;
   GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
   GPIO_Init(GPIOA, &GPIO_InitStructure);
@@ -112,24 +112,13 @@ void GPIO_Configuration(void)
 
 void TIM1_Configuration(void)
 {
-  TIM1->CCMR1 |= TIM_CCMR1_CC2S_0;    // detect rising edge on TI2
-  TIM1->CCMR1 |= TIM_CCMR1_IC2F_3;    // config filter duration
-  TIM1->CCER  |= TIM_CCER_CC2P;       // select rising edge polarity
-  TIM1->SMCR  |= TIM_SMCR_SMS;        // config timer in external clock mode 1
-  TIM1->SMCR  |= (TIM_SMCR_TS_0 | TIM_SMCR_TS_2); // select TI2 as the trigger input source
-  TIM1->CR1   |= TIM_CR1_CEN;         // enable timer
-
-  // TIM_ITConfig(TIM1, TIM_IT_Update, ENABLE);	
-  // TIM_ITConfig(TIM1, TIM_IT_CC1, ENABLE);
-  // TIM_ITConfig(TIM1, TIM_IT_CC2, ENABLE);
-  // // TIM_ITConfig(TIM1, TIM_IT_CC3, ENABLE);
-  // // TIM_ITConfig(TIM1, TIM_IT_CC4, ENABLE);
-	
-	// NVIC_EnableIRQ(TIM1_UP_TIM16_IRQn);
-  // NVIC_EnableIRQ(TIM1_CC_IRQn);
-
-	// TIM_Cmd(TIM1, ENABLE);
-  // TIM_CtrlPWMOutputs(TIM1, ENABLE);
+  TIM1->CCMR1 |= TIM_CCMR1_CC1S_0;
+  TIM1->CCMR1 |= TIM_CCMR1_IC1F_2;
+  TIM1->CCER  &= (uint16_t)(~(uint16_t)TIM_CCER_CC1P);
+  TIM1->CCMR1 &= (uint16_t)(~(uint16_t)TIM_CCMR1_IC1PSC);
+  TIM1->CCER  |= TIM_CCER_CC1E;
+  TIM1->DIER  |= TIM_DIER_CC1IE;
+  TIM1->CR1   |= TIM_CR1_CEN;
 }
 
 void TIM1_UP_TIM16_IRQHandler(void)
